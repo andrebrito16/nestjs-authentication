@@ -1,15 +1,28 @@
 import BCryptHashProvider from '@modules/users/providers/HashProvider/implementations/BCryptHashProvider';
 import UsersModule from '@modules/users/users.module';
-import { Module } from '@nestjs/common';
-import { PassportModule } from '@nestjs/passport';
+import {
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+  RequestMethod,
+} from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import AuthController from './infra/http/controllers/AuthController.controller';
-import SessionSerializer from './infra/serializers/session.serializer';
+import JwtStrategy from './jwt.strategy';
 import LocalStrategy from './local.strategy';
+import RefreshTokenMiddleware from './middlewares/RefreshToken.middleware';
+import GenerateRefreshToken from './providers/GenerateRefreshToken.provider';
 import LoginService from './services/LoginService.service';
 
 @Module({
-  imports: [UsersModule, PassportModule.register({ session: true })],
+  imports: [
+    UsersModule,
+    JwtModule.register({
+      secret: process.env.JWT_SECRET,
+      signOptions: { expiresIn: '1h' },
+    }),
+  ],
   providers: [
     {
       provide: 'LoginService',
@@ -28,10 +41,20 @@ import LoginService from './services/LoginService.service';
       useClass: LocalStrategy,
     },
     {
-      provide: 'SessionSerializer',
-      useClass: SessionSerializer,
+      provide: 'JwtStrategy',
+      useClass: JwtStrategy,
+    },
+    {
+      provide: 'GenerateRefreshToken',
+      useClass: GenerateRefreshToken,
     },
   ],
   controllers: [AuthController],
 })
-export class AuthModule {}
+export class AuthModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(RefreshTokenMiddleware)
+      .forRoutes({ path: 'auth/login', method: RequestMethod.GET });
+  }
+}

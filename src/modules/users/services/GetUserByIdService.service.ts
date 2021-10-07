@@ -12,7 +12,7 @@ class GetUserByIdService {
     private readonly hashProvider: BCryptHashProvider,
   ) {}
 
-  async execute(id: number): Promise<any> {
+  async execute(id: string): Promise<any> {
     const user = this.prisma.user.findUnique({
       where: {
         id,

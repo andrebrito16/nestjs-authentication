@@ -1,9 +1,9 @@
-import { AuthenticatedGuard } from '@modules/auth/guards/Authenticated.guard';
-import LocalAuthGuard from '@modules/auth/guards/LocalAuth.guard';
+import JwtAuthGuard from '@modules/auth/guards/JwtAuth.guard';
 import LoginService from '@modules/auth/services/LoginService.service';
 import {
   Controller,
   Get,
+  HttpCode,
   Inject,
   Post,
   Request,
@@ -17,15 +17,14 @@ class AuthController {
     private readonly loginService: LoginService,
   ) {}
 
-  @UseGuards(LocalAuthGuard)
+  // @UseGuards(LocalAuthGuard)
+  @HttpCode(200)
   @Post('/login')
-  async login() {
-    return {
-      message: 'Logged in',
-    };
+  async login(@Request() req): Promise<any> {
+    return this.loginService.execute(req.body.email, req.body.password);
   }
 
-  @UseGuards(AuthenticatedGuard)
+  @UseGuards(JwtAuthGuard)
   @Get('/login')
   async getLogin(@Request() req): Promise<any> {
     return req.user;
